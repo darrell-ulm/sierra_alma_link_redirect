@@ -1,19 +1,20 @@
 <?php
-  //Modified: 10/24 - tr
-  $PRIMO_ID = '01OHIOLINK_OSU:BLOCKO';
-  //get the initial query
+  // Modified: 10/24 - tr
+	// Modified: 5/21/2025 - dru
+  $PRIMO_ID = '01OHIOLINK_KSU:KENT';
+  // get the initial query
   $query_string = $_GET['q'];
   $debug_on = $_GET['debug'];
 
+	// See https://documentation.iii.com/sierrahelp/Default.htm#sril/sril_records_numbers.html
+	// b8484612 without check digit
+	// to generate a check digit, reverse the string, 
+	// then multiple by postion starting at the new beginning
+	// 2, 3, 4, 5, 6, 7, 8
+	// device the sum of the totals by 11.  check digit is kept to 2 digits. 
+	// if the remainder is 10, then x.  if not 10, then its the rounded number.
+	// if that number is 10, then the value is x
   function make_check_digit($num) {
-	  //See https://documentation.iii.com/sierrahelp/Default.htm#sril/sril_records_numbers.html
-	  //b8484612 without check digit
-	  //to generate a check digit, reverse the string, 
-	  //then multiple by postion starting at the new beginning
-	  // 2, 3, 4, 5, 6, 7, 8
-	  // device the sum of the totals by 11.  check digit is kept to 2 digits. 
-	  // if the remainder is 10, then x.  if not 10, then its the rounded number.
-	  // if that number is 10, then the value is x
 	  $tmp_num = strrev($num);
 	  $product = 0;
 	  for ($x = 0; $x < strlen($num); $x++) {
@@ -26,6 +27,10 @@
 	  return $remainder;
   }
 
+
+	/**
+	 * Start of the script.
+	 */
   if ($debug_on == 'true') {
 	  echo "Captured information: <br />";
 	  echo "Sever Values: <br />";
@@ -49,7 +54,9 @@
 	       echo 'not a bib record -- doing other stuff' . '<br />';
       }
 	  //https://library.ohio-state.edu/search/X?SEARCH=building+digital+libraries&SORT=D&searchscope=7&submit=Submit
-	  if (strpos($query_string, 'SEARCH=') === false &&
+	  //     https://kentlink.kent.edu/search~S1/X?SEARCH=(building%20digital%20libraries)&searchscope=1&SORT=D&m=
+		if (
+			strpos($query_string, 'SEARCH=') === false &&
 		  strpos($query_string, 'searchtype') === false &&
 		  strpos($query_string, '&FF') === false) {
 	//	  //not a search -- probably an erm record -- print the tombstone
@@ -95,7 +102,7 @@
 		  }
 		  
 		  //$url = 'https://ohiolink-osu.primo.exlibrisgroup.com/discovery/search?query=any,contains,' . $query['SEARCH'] . '&tab=Everything&search_scope=MyInst_and_CI&vid=01OHIOLINK_OSU:OSU&offset=0';
-		  $url = 'https://search.library.osu.edu/discovery/search?query=' . $searchtype . ',' . $q_string . '&tab=LibraryCatalog&search_scope=MyInstitution&vid=' . $PRIMO_ID . '&offset=0';
+		  $url = 'https://ohiolink-ksu.primo.exlibrisgroup.com/discovery/search?query=' . $searchtype . ',' . $q_string . '&tab=LibraryCatalog&search_scope=MyInstitution&vid=' . $PRIMO_ID . '&offset=0';
 	  }
   } else {
 	  //this is a bib perm record
@@ -117,7 +124,7 @@
 	  
 	  //search string: https://ohiolink-osu.primo.exlibrisgroup.com/discovery/search?query=any,contains,[bib_num]&tab=Everything&search_scope=MyInst_and_CI&vid=01OHIOLINK_OSU:OSU&offset=0
 	  //$url = 'https://ohiolink-osu.primo.exlibrisgroup.com/discovery/search?query=any,contains,' . $bib_num . '&tab=Everything&search_scope=MyInst_and_CI&vid=01OHIOLINK_OSU:OSU&offset=0';
-	  $url = 'https://search.library.osu.edu/discovery/search?query=any,contains,' . $bib_num . '&tab=LibraryCatalog&search_scope=MyInstitution&vid=' . $PRIMO_ID . '&offset=0';
+	  $url = 'https://ohiolink-ksu.primo.exlibrisgroup.com/discovery/search?query=any,contains,' . $bib_num . '&tab=LibraryCatalog&search_scope=MyInstitution&vid=' . $PRIMO_ID . '&offset=0';
 	  
   }
   if ($debug_on != 'true') {
