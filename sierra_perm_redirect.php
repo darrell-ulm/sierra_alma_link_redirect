@@ -28,6 +28,21 @@
   }
 
 
+	function processBibString($bib) {
+    // 1. Remove the leading 'b' if it is present
+    // Check if the string starts with 'b' and is not just 'b' itself
+    if (substr($bib, 0, 1) === 'b' && strlen($bib) > 1) {
+        $bib = substr($bib, 1);
+    }
+
+    // 2. If the length of the remaining string is greater than 7, remove the last character
+    if (strlen($bib) > 7) {
+        $bib = substr($bib, 0, -1);
+    }
+    return $bib;
+	}
+
+
 	/**
 	 * Start of the script.
 	 */
@@ -54,7 +69,7 @@
 	       echo 'not a bib record -- doing other stuff' . '<br />';
       }
 	  //https://library.ohio-state.edu/search/X?SEARCH=building+digital+libraries&SORT=D&searchscope=7&submit=Submit
-	  //     https://kentlink.kent.edu/search~S1/X?SEARCH=(building%20digital%20libraries)&searchscope=1&SORT=D&m=
+	  //https://kentlink.kent.edu/search~S1/X?SEARCH=(building%20digital%20libraries)&searchscope=1&SORT=D&m=
 		if (
 			strpos($query_string, 'SEARCH=') === false &&
 		  strpos($query_string, 'searchtype') === false &&
@@ -107,17 +122,22 @@
   } else {
 	  //this is a bib perm record
 	  $bib_num = substr($query_string, strpos($query_string, 'record=') + strlen('record='));
-	  
-      //since record numbers can be of varied length the best way to address this is to 
+    //since record numbers can be of varied length the best way to address this is to 
 	  //clean the ~ out of the record argument if its present (and will be if the perm url 
 	  //structure was used - then remove the b from the value.  We put it back later. 
 	  //the reason for the removal is check digit is a loop where data is a multiplier of 
 	  //data * position.  The b in the string is only useful at the end of the process
 	  //and will foul the check digit generation if present.
-	  if (strpos($bib_num, '~') >=0) {
+	  
+		// This just blanked out the bib in my tests.
+		/*if (strpos($bib_num, '~') >=0) {
 		  $bib_num = substr($bib_num, 0, strpos($bib_num, '~'));
 		  $bib_num = substr($bib_num, 1);
 	  }
+		*/
+
+		$bib_num = processBibString($bib_num);
+
 	  
 	  //create the check_digit
 	  $bib_num = 'b' . $bib_num . make_check_digit($bib_num);
