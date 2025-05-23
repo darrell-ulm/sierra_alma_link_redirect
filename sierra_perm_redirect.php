@@ -4,13 +4,17 @@
 // Modified: 5/21/2025 - dru
 $PRIMO_ID = '01OHIOLINK_KSU:KENT';
 $PRIMO_BASE_URL = 'https://ohiolink-ksu.primo.exlibrisgroup.com/discovery/search';
+$PRODUCTION = TRUE;
 
 // get the initial query
 $query_string = isset($_GET['q']) ? htmlspecialchars($_GET['q'], ENT_QUOTES, 'UTF-8') : '';
-$debug_on = isset($_GET['debug']) ? htmlspecialchars($_GET['debug'], ENT_QUOTES, 'UTF-8') : '';
 
 // When on production, set debug_on to false.
-// $debug_on = 'false';
+if ($PRODUCTION) {
+	$debug_on = 'false';
+} else {
+	$debug_on = isset($_GET['debug']) ? htmlspecialchars($_GET['debug'], ENT_QUOTES, 'UTF-8') : '';
+}
 
 // See https://documentation.iii.com/sierrahelp/Default.htm#sril/sril_records_numbers.html
 // b8484612 without check digit
@@ -95,7 +99,7 @@ if (strpos($query_string, 'record=') === false) {
           strpos($query_string, 'searchtype') === false &&
           strpos($query_string, '&FF') === false
     ) {
-        //not a search -- probably an erm record -- print the tombstone
+        // Not a search -- probably an erm record -- print the tombstone.
         if ($debug_on == 'true') {
             echo 'This link structure cannot be redirected.';
         }
@@ -152,12 +156,12 @@ if (strpos($query_string, 'record=') === false) {
     //the reason for the removal is check digit is a loop where data is a multiplier of
     //data * position.  The b in the string is only useful at the end of the process
     //and will foul the check digit generation if present.
-      // This just blanked out the bib in my tests.
-      /*if (strpos($bib_num, '~') >=0) {
-        $bib_num = substr($bib_num, 0, strpos($bib_num, '~'));
-        $bib_num = substr($bib_num, 1);
-      }
-      */
+		// This just blanked out the bib in my tests - dru, may have worked for OSU.
+		/*if (strpos($bib_num, '~') >=0) {
+			$bib_num = substr($bib_num, 0, strpos($bib_num, '~'));
+			$bib_num = substr($bib_num, 1);
+		}
+		*/
 
     // Remove leading 'b' if any and trailing check digit if present.
     $bib_num = processBibString($bib_num);
