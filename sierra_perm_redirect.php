@@ -3,8 +3,11 @@
 	// Modified: 5/21/2025 - dru
   $PRIMO_ID = '01OHIOLINK_KSU:KENT';
   // get the initial query
-  $query_string = $_GET['q'];
-  $debug_on = $_GET['debug'];
+	$query_string = isset($_GET['q']) ? htmlspecialchars($_GET['q'], ENT_QUOTES, 'UTF-8') : '';
+	$debug_on = isset($_GET['debug']) ? htmlspecialchars($_GET['debug'], ENT_QUOTES, 'UTF-8') : '';
+
+	// When on production, set debug_on to false.
+	// $debug_on = 'false';
 
 	// See https://documentation.iii.com/sierrahelp/Default.htm#sril/sril_records_numbers.html
 	// b8484612 without check digit
@@ -14,6 +17,10 @@
 	// device the sum of the totals by 11.  check digit is kept to 2 digits. 
 	// if the remainder is 10, then x.  if not 10, then its the rounded number.
 	// if that number is 10, then the value is x
+
+	/**
+	 * Function to generate a check digit for a given number.
+	 */
   function make_check_digit($num) {
 	  $tmp_num = strrev($num);
 	  $product = 0;
@@ -28,23 +35,27 @@
   }
 
 
+	/**
+	 * Function to process the bib number string.
+	 * It removes the leading 'b' and the trailing character if the length is greater than 7.
+	 *
+	 * @param string $bib The bib number string to process.
+	 * @return string The processed bib number string.
+	 */
 	function processBibString($bib) {
-    // 1. Remove the leading 'b' if it is present
     // Check if the string starts with 'b' and is not just 'b' itself
-    if (substr($bib, 0, 1) === 'b' && strlen($bib) > 1) {
-        $bib = substr($bib, 1);
-    }
-
-    // 2. If the length of the remaining string is greater than 7, remove the last character
-    if (strlen($bib) > 7) {
-        $bib = substr($bib, 0, -1);
-    }
+		$bib = (substr($bib, 0, 1) === 'b' && strlen($bib) > 1) ? substr($bib, 1) : $bib;
+    // If the length of the remaining string is greater than 7, remove the last character
+		$bib = strlen($bib) > 7 ? substr($bib, 0, -1) : $bib;
     return $bib;
 	}
 
 
+//=========================================================================================
 	/**
-	 * Start of the script.
+	 * This script is used to redirect a user from a Sierra perm link to the Primo discovery service.
+	 * It captures the bib number from the Sierra perm link, generates a check digit,
+	 * and constructs a new URL for the Primo discovery service.
 	 */
   if ($debug_on == 'true') {
 	  echo "Captured information: <br />";
@@ -62,9 +73,10 @@
 	  }
 	  echo "Query String: " . $query_string . '<br />'; 
   }
-  //parse the bibnumber
+
+  // Parse the bibnumber.
   if (strpos($query_string, 'record=') === false) {
-	  //this isn't a bib perm link -- do something else
+	  // This isn't a bib perm link -- do something else.
 	  if ($debug_on == 'true') {
 	       echo 'not a bib record -- doing other stuff' . '<br />';
       }
@@ -74,7 +86,7 @@
 			strpos($query_string, 'SEARCH=') === false &&
 		  strpos($query_string, 'searchtype') === false &&
 		  strpos($query_string, '&FF') === false) {
-	//	  //not a search -- probably an erm record -- print the tombstone
+	  	//not a search -- probably an erm record -- print the tombstone
 		  echo 'This link structure cannot be redirected.';
 	  } else {		
 		  $parts = parse_url($query_string);		
