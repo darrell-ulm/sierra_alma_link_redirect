@@ -8,6 +8,8 @@ $PRODUCTION = TRUE;
 
 // get the initial query
 $query_string = isset($_GET['q']) ? htmlspecialchars($_GET['q'], ENT_QUOTES, 'UTF-8') : '';
+// get the server name
+$server = isset($_GET['q']) ? htmlspecialchars($_SERVER['HTTP_REFERER'], ENT_QUOTES, 'UTF-8') : '';
 
 // When on production, set debug_on to false.
 if ($PRODUCTION) {
@@ -75,7 +77,7 @@ if ($debug_on == 'true') {
     echo "Request values: <br />";
     echo var_dump($_REQUEST) . "<br />";
     echo "<br />";
-    $referring_URL = $_SERVER['HTTP_REFERER'];
+    $referring_URL = $server;
     if ($referring_URL == "") {
         echo "No Referring URL is present - this means the user is coming from a bookmark or direct link. <br />";
     } else {
