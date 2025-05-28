@@ -7,25 +7,16 @@ $PRIMO_BASE_URL = 'https://ohiolink-ksu.primo.exlibrisgroup.com/discovery/search
 $PRODUCTION = TRUE;
 
 // get the initial query
-$query_string = isset($_GET['q']) ? htmlspecialchars($_GET['q'], ENT_QUOTES, 'UTF-8') : '';
+$query_string = isset($_GET['q']) ? $_GET['q'] : '';
 // get the server name
-$server = isset($_GET['q']) ? htmlspecialchars($_SERVER['HTTP_REFERER'], ENT_QUOTES, 'UTF-8') : '';
+$server = isset($_GET['q']) ? $_SERVER['HTTP_REFERER'] : '';
 
 // When on production, set debug_on to false.
 if ($PRODUCTION) {
-	$debug_on = 'false';
+    $debug_on = 'false';
 } else {
-	$debug_on = isset($_GET['debug']) ? htmlspecialchars($_GET['debug'], ENT_QUOTES, 'UTF-8') : '';
+    $debug_on = isset($_GET['debug']) ? $_GET['debug'] : '';
 }
-
-// See https://documentation.iii.com/sierrahelp/Default.htm#sril/sril_records_numbers.html
-// b8484612 without check digit
-// to generate a check digit, reverse the string,
-// then multiple by postion starting at the new beginning
-// 2, 3, 4, 5, 6, 7, 8
-// device the sum of the totals by 11.  check digit is kept to 2 digits.
-// if the remainder is 10, then x.  if not 10, then its the rounded number.
-// if that number is 10, then the value is x
 
 /**
  * Function to generate a check digit for a given number.
@@ -72,18 +63,22 @@ function processBibString($bib)
 if ($debug_on == 'true') {
     echo "Captured information: <br />";
     echo "Sever Values: <br />";
-    echo var_dump($_SERVER) . "<br />";
+    echo "<pre>";
+    var_dump($_SERVER);
+    echo "</pre><br />";
     echo "<br />";
     echo "Request values: <br />";
-    echo var_dump($_REQUEST) . "<br />";
+    echo "<pre>";
+    var_dump($_REQUEST);
+    echo "</pre><br />";
     echo "<br />";
     $referring_URL = $server;
     if ($referring_URL == "") {
         echo "No Referring URL is present - this means the user is coming from a bookmark or direct link. <br />";
     } else {
-        echo "Referring URL: " . $_SERVER['HTTP_REFERER'] . "<br />";
+        echo "Referring URL: " . htmlspecialchars($_SERVER['HTTP_REFERER'], ENT_QUOTES, 'UTF-8') . "<br />";
     }
-    echo "Query String: " . $query_string . '<br />';
+    echo "Query String: " . htmlspecialchars($query_string, ENT_QUOTES, 'UTF-8') . '<br />';
 }
 
 // Parse the bibnumber.
@@ -94,7 +89,7 @@ if (strpos($query_string, 'record=') === false) {
     }
     //https://library.ohio-state.edu/search/X?SEARCH=building+digital+libraries&SORT=D&searchscope=7&submit=Submit
     //https://kentlink.kent.edu/search~S1/X?SEARCH=(building%20digital%20libraries)&searchscope=1&SORT=D&m=
-        
+
     // Is this NOT a search link?
     if (
           strpos($query_string, 'SEARCH=') === false &&
@@ -108,45 +103,48 @@ if (strpos($query_string, 'record=') === false) {
     } else {
         // This is a search link, so we need to parse it.
         $parts = parse_url($query_string);
-        parse_str($parts['query'], $query);
-        $searchtype = $query['searchtype'];
-        $searcharg = $query['searcharg'];
-        $inside_search = $query['FF'];
-          
-        $q_string = $query['SEARCH'];
-          
-        if (strlen($q_string) == 0) {
-              $q_string = $searcharg;
-        }
-          
-        switch ($searchtype) {
-            case "t":
-                $searchtype = 'title,contains';
-                break;
-            case "a":
-                $searchtype = 'creator,contains';
-                break;
-            case "d":
-            case "j":
-                $searchtype = 'sub,contains';
-                break;
-            default:
-                //echo('inside query: ' . $inside_search);
-                if (strlen($inside_search) == 0) {
-                    $searchtype = 'any,contains';
-                } else {
-                    if (substr($inside_search, 0, 1) == 't') {
-                        $searchtype = 'lds04,contains';
-                        $q_string = substr($query['FF'], 1);
+        if (isset($parts['query'])) {
+            parse_str($parts['query'], $query);
+            $searchtype = $query['searchtype'];
+            $searcharg = $query['searcharg'];
+            $inside_search = $query['FF'];
+            $q_string = $query['SEARCH'];
+
+            if (strlen($q_string) == 0) {
+                  $q_string = $searcharg;
+            }
+
+            switch ($searchtype) {
+                case "t":
+                    $searchtype = 'title,contains';
+                    break;
+                case "a":
+                    $searchtype = 'creator,contains';
+                    break;
+                case "d":
+                case "j":
+                    $searchtype = 'sub,contains';
+                    break;
+                default:
+                    if (strlen($inside_search) == 0) {
+                        $searchtype = 'any,contains';
                     } else {
-                        $search_type = 'any,contains';
+                        if (substr($inside_search, 0, 1) == 't') {
+                            $searchtype = 'lds04,contains';
+                            $q_string = substr($query['FF'], 1);
+                        } else {
+                            $search_type = 'any,contains';
+                        }
                     }
-                }
-                break;
+                    break;
+            }
+
+            // Properly encode the query parameters for the URL
+            $url = $PRIMO_BASE_URL . '?query=' . urlencode($searchtype) . ',' . urlencode($q_string) . '&tab=LibraryCatalog&search_scope=MyInstitution&vid=' . urlencode($PRIMO_ID) . '&offset=0';
+        } else {
+            // Handle cases where the query string is malformed
+            $url = $PRIMO_BASE_URL . '/discovery/search?vid=' . urlencode($PRIMO_ID);
         }
-          
-        //$url = 'https://ohiolink-osu.primo.exlibrisgroup.com/discovery/search?query=any,contains,' . $query['SEARCH'] . '&tab=Everything&search_scope=MyInst_and_CI&vid=01OHIOLINK_OSU:OSU&offset=0';
-        $url = $PRIMO_BASE_URL . '?query=' . $searchtype . ',' . $q_string . '&tab=LibraryCatalog&search_scope=MyInstitution&vid=' . $PRIMO_ID . '&offset=0';
     }
 } else {
     // This is a bib perm record.
@@ -158,30 +156,29 @@ if (strpos($query_string, 'record=') === false) {
     //the reason for the removal is check digit is a loop where data is a multiplier of
     //data * position.  The b in the string is only useful at the end of the process
     //and will foul the check digit generation if present.
-		// This just blanked out the bib in my tests - dru, may have worked for OSU.
-		/*if (strpos($bib_num, '~') >=0) {
-			$bib_num = substr($bib_num, 0, strpos($bib_num, '~'));
-			$bib_num = substr($bib_num, 1);
-		}
-		*/
+        if (strpos($bib_num, '~') !== false) {
+            $bib_num = substr($bib_num, 0, strpos($bib_num, '~'));
+            $bib_num = substr($bib_num, 1);
+        }
 
     // Remove leading 'b' if any and trailing check digit if present.
     $bib_num = processBibString($bib_num);
     // Add leading 'b' back and create the check_digit.
     $bib_num = 'b' . $bib_num . make_check_digit($bib_num);
-      
-    //search string: https://ohiolink-osu.primo.exlibrisgroup.com/discovery/search?query=any,contains,[bib_num]&tab=Everything&search_scope=MyInst_and_CI&vid=01OHIOLINK_OSU:OSU&offset=0
-    //$url = 'https://ohiolink-osu.primo.exlibrisgroup.com/discovery/search?query=any,contains,' . $bib_num . '&tab=Everything&search_scope=MyInst_and_CI&vid=01OHIOLINK_OSU:OSU&offset=0';
-    $url = $PRIMO_BASE_URL . '?query=any,contains,' . $bib_num . '&tab=LibraryCatalog&search_scope=MyInstitution&vid=' . $PRIMO_ID . '&offset=0';
+
+    // Properly encode the bib number for the URL
+    $url = $PRIMO_BASE_URL . '?query=any,contains,' . urlencode($bib_num) . '&tab=LibraryCatalog&search_scope=MyInstitution&vid=' . urlencode($PRIMO_ID) . '&offset=0';
 }
 
 // If not debugging, redirect to the new URL.
 if ($debug_on != 'true') {
     if ($url != '') {
-        header('location: ' . $url);
+        header('Location: ' . $url);
+        exit; // Ensure script execution stops after redirection
     } else {
         // Else redirect to the main Primo page.
-        $url =  $PRIMO_BASE_URL . '/discovery/search?vid=' . $PRIMO_ID;
-        header('location: ' . $url);
+        $url =  $PRIMO_BASE_URL . '/discovery/search?vid=' . urlencode($PRIMO_ID);
+        header('Location: ' . $url);
+        exit; // Ensure script execution stops after redirection
     }
 }
